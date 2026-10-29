@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabbit Grammar Dash - Present Continuous</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Pixel Font (Press Start 2P) -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1c23;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Pixel art rendering rule for crisp 8-bit visual feel */
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .pixel-box {
+            border: 4px solid #000;
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        .pixel-btn {
+            border: 4px solid #000;
+            box-shadow: 0 6px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .pixel-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #000;
+        }
+
+        .pixel-card {
+            background: #2a2d3d;
+            border: 4px solid #fff;
+            box-shadow: 6px 6px 0px #000;
+        }
+
+        /* Pulse effect for energy bar */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 2px #4ade80); }
+            50% { filter: drop-shadow(0 0 8px #22c55e); }
+        }
+        .energy-glow {
+            animation: pulse-glow 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-2 sm:p-4 overflow-x-hidden bg-slate-900">
+
+    <!-- MAIN GAME CONTAINER -->
+    <div id="game-container" class="relative w-full max-w-4xl bg-emerald-900 border-4 border-slate-950 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+        
+        <!-- TOP HUD / ENERGY & HEARTS BAR -->
+        <div class="bg-slate-950 p-3 flex flex-wrap items-center justify-between border-b-4 border-black text-xs sm:text-sm gap-2">
+            <!-- Health Hearts -->
+            <div class="flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded border-2 border-slate-700">
+                <span class="text-xs text-amber-400 mr-1 hidden sm:inline">HP:</span>
+                <div id="hearts-container" class="flex gap-1">
+                    <span class="text-red-500 text-lg">❤️</span>
+                    <span class="text-red-500 text-lg">❤️</span>
+                    <span class="text-red-500 text-lg">❤️</span>
+                </div>
+            </div>
+
+            <!-- Question Counter -->
+            <div class="bg-slate-800 px-3 py-1.5 rounded border-2 border-slate-700 text-amber-300">
+                <span id="question-tracker">Q: 1/20</span>
+            </div>
+
+            <!-- Energy Meter Bar -->
+            <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded border-2 border-slate-700 flex-1 max-w-[240px]">
+                <span class="text-[10px] sm:text-xs text-green-400">ENERGY</span>
+                <div class="w-full bg-slate-950 h-4 border-2 border-slate-600 rounded overflow-hidden p-0.5">
+                    <div id="energy-bar" class="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300 w-full rounded-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CANVAS GAME SCREEN (RABBIT RUNNING ON GRASSLAND) -->
+        <div class="relative w-full aspect-[16/9] max-h-[360px] bg-sky-300 overflow-hidden">
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+            
+            <!-- OVERLAY QUESTION BOARD -->
+            <div id="question-overlay" class="absolute inset-x-2 top-2 sm:top-4 bg-slate-900/90 text-white p-3 sm:p-4 rounded-lg border-4 border-emerald-500 shadow-lg text-center backdrop-blur-sm transition-all duration-300 transform scale-100 hidden">
+                <div id="question-text" class="text-xs sm:text-sm md:text-base leading-relaxed text-yellow-300 mb-3">
+                    Loading question...
+                </div>
+                
+                <!-- 2 MULTIPLE CHOICE BUTTONS -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mt-2">
+                    <button id="opt1-btn" onclick="checkAnswer(0)" class="pixel-btn bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded text-xs sm:text-sm text-left flex items-center justify-between group">
+                        <span id="opt1-text">Option A</span>
+                        <span class="text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity">🥕</span>
+                    </button>
+                    <button id="opt2-btn" onclick="checkAnswer(1)" class="pixel-btn bg-purple-600 hover:bg-purple-500 text-white py-2 px-3 rounded text-xs sm:text-sm text-left flex items-center justify-between group">
+                        <span id="opt2-text">Option B</span>
+                        <span class="text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity">🥕</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FEEDBACK MESSAGE FLOATER -->
+            <div id="feedback-banner" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border-2 border-black text-xs sm:text-sm font-bold text-center pointer-events-none opacity-0 transition-opacity duration-300 z-20">
+            </div>
+        </div>
+
+        <!-- BOTTOM CONTROLS & STATUS -->
+        <div class="bg-slate-950 p-2 text-center text-[10px] sm:text-xs text-slate-400 border-t-4 border-black">
+            <span>🥕 Help Bun-Bun collect carrots by making correct sentences!</span>
+        </div>
+    </div>
+
+    <!-- START & GRAMMAR RULES INSTRUCTION MODAL -->
+    <div id="instruction-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div class="pixel-card max-w-lg w-full p-5 sm:p-6 text-white rounded-lg relative overflow-y-auto max-h-[90vh]">
+            <div class="text-center mb-4">
+                <h1 class="text-lg sm:text-xl text-yellow-400 mb-1 leading-snug">🐰 RABBIT GRAMMAR DASH</h1>
+                <p class="text-xs text-emerald-400">Present Continuous Tense!</p>
+            </div>
+
+            <!-- RULE CARDS -->
+            <div class="space-y-3 text-[10px] sm:text-xs bg-slate-900 p-3 sm:p-4 rounded border-2 border-slate-700 leading-relaxed">
+                <div class="text-amber-300 font-bold border-b border-slate-700 pb-1">⚡ HOW TO PLAY:</div>
+                <p>1. Choose the correct present continuous verb to feed Bun-Bun!</p>
+                <p>2. Watch out for spelling rules:</p>
+                
+                <div class="bg-slate-800 p-2 rounded border border-slate-600 text-sky-200">
+                    <span class="text-yellow-300 font-bold">✨ Magic 'e':</span> Drop 'e' and add <strong>-ing</strong>
+                    <br><span class="text-slate-400">Example:</span> mak<span class="text-red-400">e</span> ➔ mak<span class="text-green-400">ing</span>, writ<span class="text-red-400">e</span> ➔ writ<span class="text-green-400">ing</span>
+                </div>
+
+                <div class="bg-slate-800 p-2 rounded border border-slate-600 text-pink-200">
+                    <span class="text-yellow-300 font-bold">💥 Double Last Letter:</span> Short vowel + 1 consonant ➔ Double consonant + <strong>-ing</strong>
+                    <br><span class="text-slate-400">Example:</span> ru<span class="text-yellow-400">n</span> ➔ ru<span class="text-green-400">nning</span>, swi<span class="text-yellow-400">m</span> ➔ swi<span class="text-green-400">mming</span>
+                </div>
+
+                <div class="bg-slate-800 p-2 rounded border border-slate-600 text-emerald-200">
+                    <span class="text-yellow-300 font-bold">❤️ Energy & Health:</span>
+                    <br>• 3 wrong answers = Energy drained (Game Over)!
+                    <br>• Correct answers restore 1/3 energy!
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="pixel-btn w-full mt-5 bg-green-500 hover:bg-green-400 text-slate-950 font-extrabold py-3 rounded text-sm sm:text-base tracking-wide uppercase transition-colors">
+                START RUNNING! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER / FINISH RESULT MODAL -->
+    <div id="result-modal" class="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 hidden">
+        <div class="pixel-card max-w-md w-full p-6 text-center text-white rounded-lg relative">
+            <div id="result-icon" class="text-5xl mb-2">🥕</div>
+            <h2 id="result-title" class="text-base sm:text-lg text-yellow-400 mb-2">GREAT JOB!</h2>
+            <p id="result-message" class="text-xs sm:text-sm text-slate-200 mb-6 leading-relaxed bg-slate-900 p-4 rounded border-2 border-slate-700">
+                Result text...
+            </p>
+
+            <button onclick="restartGame()" class="pixel-btn w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded text-xs sm:text-sm uppercase">
+                PLAY AGAIN 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           AUDIO SYNTHESIZER (8-bit Sound Effects via Web Audio API)
+           ========================================================================== */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    // Happy coin chime
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                    osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'wrong') {
+                    // Sad buzz
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now); // A3
+                    osc.frequency.setValueAtTime(164.81, now + 0.15); // E3
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'win') {
+                    // Fanfare
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.12);
+                    osc.frequency.setValueAtTime(659.25, now + 0.24);
+                    osc.frequency.setValueAtTime(880, now + 0.36);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                }
+            } catch (e) {
+                console.log("Audio play error:", e);
+            }
+        }
+
+        /* ==========================================================================
+           20 P2 LEVEL QUESTION BANK (Magic 'e', Double Consonant, Grammar Logic)
+           ========================================================================== */
+        const questions = [
+            {
+                text: "Look! The happy rabbit _____ in the garden right now.",
+                options: ["is dancing", "is danceing"],
+                correct: 0,
+                rule: "Magic 'e': drop 'e' before adding -ing!"
+            },
+            {
+                text: "Tim and Ben _____ fast across the green grass.",
+                options: ["are runing", "are running"],
+                correct: 1,
+                rule: "Double consonant: run ➔ running!"
+            },
+            {
+                text: "Look! She _____ a sweet letter to her teacher.",
+                options: ["is writing", "is writeing"],
+                correct: 0,
+                rule: "Magic 'e': write ➔ writing!"
+            },
+            {
+                text: "The kids _____ in the swimming pool now.",
+                options: ["are swimming", "are swiming"],
+                correct: 0,
+                rule: "Double consonant: swim ➔ swimming!"
+            },
+            {
+                text: "Look at the cat! It _____ on the sofa.",
+                options: ["is sleeping", "are sleeping"],
+                correct: 0,
+                rule: "'It' uses 'is'!"
+            },
+            {
+                text: "The cute bunny _____ delicious fresh carrots.",
+                options: ["is eatting", "is eating"],
+                correct: 1,
+                rule: "Eat has two vowels (ea), so don't double 't'!"
+            },
+            {
+                text: "Look! My dad _____ the big yellow car.",
+                options: ["is driveing", "is driving"],
+                correct: 1,
+                rule: "Magic 'e': drive ➔ driving!"
+            },
+            {
+                text: "Look! The frog _____ on the lily pad.",
+                options: ["is hopping", "is meowing"],
+                correct: 0,
+                rule: "Frogs hop! Short vowel ➔ hopping!"
+            },
+            {
+                text: "I _____ a funny picture of a rabbit.",
+                options: ["am making", "am makeing"],
+                correct: 0,
+                rule: "Magic 'e': make ➔ making!"
+            },
+            {
+                text: "Listen! The baby _____ softly in her bed.",
+                options: ["is crying", "are crying"],
+                correct: 0,
+                rule: "Baby is singular ➔ is crying!"
+            },
+            {
+                text: "Look at the boys! They _____ rope together.",
+                options: ["are skipping", "are skiping"],
+                correct: 0,
+                rule: "Double consonant: skip ➔ skipping!"
+            },
+            {
+                text: "The little girl _____ her hands with joy.",
+                options: ["is claping", "is clapping"],
+                correct: 1,
+                rule: "Double consonant: clap ➔ clapping!"
+            },
+            {
+                text: "Be quiet! The baby _____ right now.",
+                options: ["is sleeping", "are sleeping"],
+                correct: 0,
+                rule: "Baby is singular ➔ is sleeping!"
+            },
+            {
+                text: "Look! The little rabbit _____ behind the bush.",
+                options: ["is hidding", "is hiding"],
+                correct: 1,
+                rule: "Magic 'e': hide ➔ hiding!"
+            },
+            {
+                text: "They _____ high up into the blue sky.",
+                options: ["are jumping", "is jumping"],
+                correct: 0,
+                rule: "'They' uses 'are'!"
+            },
+            {
+                text: "Look! He _____ his new red bicycle.",
+                options: ["is riding", "is rideing"],
+                correct: 0,
+                rule: "Magic 'e': ride ➔ riding!"
+            },
+            {
+                text: "The bird _____ on the tree branch right now.",
+                options: ["is sitting", "is siting"],
+                correct: 0,
+                rule: "Double consonant: sit ➔ sitting!"
+            },
+            {
+                text: "We _____ a bright sunny day on the meadow.",
+                options: ["are moveing", "are having"],
+                correct: 1,
+                rule: "Magic 'e': have ➔ having!"
+            },
+            {
+                text: "Look! The fast rabbit _____ the heavy rock.",
+                options: ["is pushing", "are pushing"],
+                correct: 0,
+                rule: "'Rabbit' is singular ➔ is pushing!"
+            },
+            {
+                text: "The cute children _____ in the green grassland.",
+                options: ["are jogging", "are joging"],
+                correct: 0,
+                rule: "Double consonant: jog ➔ jogging!"
+            }
+        ];
+
+        /* ==========================================================================
+           GAME STATE ENGINE
+           ========================================================================== */
+        let currentQuestionIdx = 0;
+        let lives = 3;
+        let energy = 100; // 0 to 100 percentage
+        let isRunning = false;
+        let gameFinished = false;
+        let answeredCurrent = false;
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        /* ==========================================================================
+           8-BIT SPRITE & ANIMATION RENDERING SYSTEM
+           ========================================================================== */
+        let frameCount = 0;
+        let bgOffset = 0;
+        let carrotX = -100;
+        let carrotY = 0;
+        let showCarrotInWorld = false;
+
+        // Pixel Rabbit Drawing Function
+        function drawRabbit(x, y, frame, state) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.beginPath();
+            ctx.ellipse(16, 30, 14, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rabbit Body Frame bounce
+            const bounceY = (state === 'running') ? (frame % 2 === 0 ? 0 : -3) : 0;
+            ctx.translate(0, bounceY);
+
+            // Feet movement when running
+            ctx.fillStyle = '#e2e8f0'; // Light slate / white body
+            if (state === 'running') {
+                const legOffset = (frame % 2 === 0) ? 4 : -4;
+                ctx.fillRect(4 + legOffset, 24, 8, 6);
+                ctx.fillRect(18 - legOffset, 24, 8, 6);
+            } else {
+                ctx.fillRect(6, 24, 8, 6);
+                ctx.fillRect(18, 24, 8, 6);
+            }
+
+            // Main Body
+            ctx.fillRect(6, 12, 20, 14);
+
+            // Tail
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(2, 16, 5, 5);
+
+            // Head
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(14, 2, 14, 13);
+
+            // Ears
+            const earTilt = (state === 'running' && frame % 2 === 0) ? -2 : 0;
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(16 + earTilt, -12, 5, 14); // Left Ear
+            ctx.fillRect(22 + earTilt, -10, 5, 12); // Right Ear
+            
+            // Ear Inner Pink
+            ctx.fillStyle = '#f472b6';
+            ctx.fillRect(18 + earTilt, -10, 2, 10);
+            ctx.fillRect(24 + earTilt, -8, 2, 8);
+
+            // Eyes
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(22, 5, 3, 4);
+            ctx.fillStyle = '#ffffff'; // Eye shine
+            ctx.fillRect(23, 5, 1, 1);
+
+            // Cheeks
+            ctx.fillStyle = '#f472b6';
+            ctx.fillRect(20, 10, 3, 2);
+
+            // Nose
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(26, 8, 2, 2);
+
+            ctx.restore();
+        }
+
+        // Draw 8-Bit Carrot
+        function drawCarrot(x, y, scale = 1) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            // Carrot Top Green Leaves
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(6, 0, 4, 6);
+            ctx.fillRect(2, 2, 5, 3);
+            ctx.fillRect(9, 2, 5, 3);
+
+            // Orange Body
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(4, 6, 8, 4);
+            ctx.fillRect(5, 10, 6, 5);
+            ctx.fillRect(6, 15, 4, 4);
+            ctx.fillRect(7, 19, 2, 3);
+
+            // Detail Lines
+            ctx.fillStyle = '#ea580c';
+            ctx.fillRect(6, 8, 4, 1);
+            ctx.fillRect(7, 13, 3, 1);
+
+            ctx.restore();
+        }
+
+        // Draw Extra Large Surprise Carrot
+        function drawBigCarrot(x, y) {
+            drawCarrot(x, y, 2.5);
+        }
+
+        // Render Grassland Environment Loop
+        function renderScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const horizon = h * 0.65;
+
+            // Sky Gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
+            skyGrad.addColorStop(0, '#38bdf8');
+            skyGrad.addColorStop(1, '#bae6fd');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, horizon);
+
+            // 8-bit Clouds
+            ctx.fillStyle = '#ffffff';
+            const cloudX1 = (bgOffset * 0.2) % (w + 120) - 60;
+            const cloudX2 = (bgOffset * 0.1 + 200) % (w + 160) - 80;
+            
+            // Cloud 1
+            ctx.fillRect(w - cloudX1, 30, 50, 16);
+            ctx.fillRect(w - cloudX1 + 10, 20, 30, 10);
+            
+            // Cloud 2
+            ctx.fillRect(w - cloudX2, 60, 60, 20);
+            ctx.fillRect(w - cloudX2 + 15, 48, 30, 14);
+
+            // Distant Hills
+            ctx.fillStyle = '#16a34a';
+            ctx.beginPath();
+            ctx.moveTo(0, horizon);
+            for (let i = 0; i <= w; i += 40) {
+                const hillY = horizon - Math.sin((i + bgOffset * 0.5) * 0.01) * 20;
+                ctx.lineTo(i, hillY);
+            }
+            ctx.lineTo(w, horizon);
+            ctx.fill();
+
+            // Grassland Floor
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(0, horizon, w, h - horizon);
+
+            // Grass Dirt Border Line
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, horizon, w, 6);
+
+            // Moving Grass Blades & Details
+            ctx.fillStyle = '#166534';
+            const step = 40;
+            const offsetGrass = bgOffset % step;
+            for (let x = -offsetGrass; x < w; x += step) {
+                ctx.fillRect(x, horizon + 12, 6, 8);
+                ctx.fillRect(x + 18, horizon + 30, 8, 6);
+                ctx.fillRect(x + 28, horizon + 50, 6, 10);
+            }
+
+            // Draw Floating Target Carrot if active
+            if (showCarrotInWorld) {
+                drawCarrot(carrotX, carrotY);
+            }
+
+            // Draw Rabbit
+            const rabbitX = w * 0.2;
+            const rabbitY = horizon - 20;
+            const rabbitState = (isRunning && !gameFinished) ? 'running' : 'idle';
+            drawRabbit(rabbitX, rabbitY, Math.floor(frameCount / 8), rabbitState);
+
+            // If Game Win with Full Energy -> Show Big Reward Carrot
+            if (gameFinished && lives > 0 && energy >= 99) {
+                drawBigCarrot(w * 0.55, horizon - 50);
+            }
+        }
+
+        // Main Animation Loop
+        function gameLoop() {
+            frameCount++;
+            if (isRunning) {
+                bgOffset += 4;
+                if (showCarrotInWorld) {
+                    carrotX -= 4;
+                    if (carrotX < canvas.width * 0.2 + 10) {
+                        showCarrotInWorld = false; // Rabbit "eats" carrot
+                    }
+                }
+            }
+
+            renderScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ==========================================================================
+           GAME LOGIC & UI HANDLERS
+           ========================================================================== */
+
+        function startGame() {
+            initAudio();
+            document.getElementById('instruction-modal').classList.add('hidden');
+            resetGameState();
+            showNextQuestion();
+            isRunning = true;
+        }
+
+        function resetGameState() {
+            currentQuestionIdx = 0;
+            lives = 3;
+            energy = 100;
+            gameFinished = false;
+            answeredCurrent = false;
+            updateHUD();
+        }
+
+        function updateHUD() {
+            // Update Hearts
+            const heartsContainer = document.getElementById('hearts-container');
+            let heartsHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < lives) {
+                    heartsHTML += '<span class="text-red-500 text-base sm:text-lg">❤️</span>';
+                } else {
+                    heartsHTML += '<span class="text-slate-600 text-base sm:text-lg">🖤</span>';
+                }
+            }
+            heartsContainer.innerHTML = heartsHTML;
+
+            // Update Question Tracker
+            document.getElementById('question-tracker').innerText = `Q: ${currentQuestionIdx + 1}/${questions.length}`;
+
+            // Update Energy Bar
+            const energyBar = document.getElementById('energy-bar');
+            energyBar.style.width = `${Math.max(0, energy)}%`;
+
+            // Color shift based on energy
+            if (energy > 60) {
+                energyBar.className = "h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300 w-full rounded-sm";
+            } else if (energy > 30) {
+                energyBar.className = "h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-300 w-full rounded-sm";
+            } else {
+                energyBar.className = "h-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-300 w-full rounded-sm";
+            }
+        }
+
+        function showNextQuestion() {
+            if (currentQuestionIdx >= questions.length) {
+                triggerWinGame();
+                return;
+            }
+
+            answeredCurrent = false;
+            showCarrotInWorld = false; // Hide carrot initially until right answer is chosen
+
+            const q = questions[currentQuestionIdx];
+
+            // Set text
+            document.getElementById('question-text').innerHTML = q.text.replace('_____', '<span class="underline decoration-yellow-400 font-extrabold px-1 text-yellow-300">_____</span>');
+            document.getElementById('opt1-text').innerText = `A) ${q.options[0]}`;
+            document.getElementById('opt2-text').innerText = `B) ${q.options[1]}`;
+
+            // Show UI Overlay
+            const qOverlay = document.getElementById('question-overlay');
+            qOverlay.classList.remove('hidden');
+
+            updateHUD();
+        }
+
+        function checkAnswer(selectedIndex) {
+            if (answeredCurrent || gameFinished) return;
+            answeredCurrent = true;
+
+            const q = questions[currentQuestionIdx];
+            const feedback = document.getElementById('feedback-banner');
+
+            if (selectedIndex === q.correct) {
+                // CORRECT ANSWER: Spawn carrot for rabbit to eat!
+                playSound('correct');
+                
+                carrotX = canvas.width - 60;
+                carrotY = canvas.height * 0.65 - 30;
+                showCarrotInWorld = true;
+
+                // Resume 1/3 of max energy (approx +33.33%), max cap at 100
+                energy = Math.min(100, energy + 33.33);
+
+                feedback.innerText = `✨ EXCELLENT! ${q.rule}`;
+                feedback.className = "absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border-2 border-black text-xs sm:text-sm font-bold text-center pointer-events-none bg-green-500 text-slate-950 opacity-100 transition-opacity duration-300 z-20";
+
+            } else {
+                // WRONG ANSWER: No carrot appears!
+                playSound('wrong');
+                lives--;
+                showCarrotInWorld = false;
+
+                // Deduct energy corresponding to 1/3 lost
+                energy = Math.max(0, energy - 33.33);
+
+                feedback.innerText = `❌ OOPS! ${q.rule}`;
+                feedback.className = "absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border-2 border-black text-xs sm:text-sm font-bold text-center pointer-events-none bg-red-500 text-white opacity-100 transition-opacity duration-300 z-20";
+            }
+
+            updateHUD();
+
+            // Check Game Over Condition (3 wrong answers / 0 lives / 0 energy)
+            if (lives <= 0 || energy <= 0) {
+                setTimeout(() => {
+                    feedback.style.opacity = '0';
+                    triggerGameOver();
+                }, 1200);
+                return;
+            }
+
+            // Proceed to next question after short delay
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                currentQuestionIdx++;
+                showNextQuestion();
+            }, 1500);
+        }
+
+        function triggerGameOver() {
+            gameFinished = true;
+            isRunning = false; // Rabbit stops running
+            
+            document.getElementById('question-overlay').classList.add('hidden');
+            
+            const resultModal = document.getElementById('result-modal');
+            document.getElementById('result-icon').innerText = '🪫';
+            document.getElementById('result-title').innerText = 'ENERGY DRAINED!';
+            document.getElementById('result-title').className = 'text-base sm:text-lg text-red-400 mb-2';
+            document.getElementById('result-message').innerText = 'You can get the surprise gift next time! Try again!';
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function triggerWinGame() {
+            gameFinished = true;
+            document.getElementById('question-overlay').classList.add('hidden');
+            playSound('win');
+
+            const resultModal = document.getElementById('result-modal');
+
+            if (energy >= 99) {
+                // FINISHED WITH FULL ENERGY!
+                document.getElementById('result-icon').innerText = '🥕🏆';
+                document.getElementById('result-title').innerText = 'SUPER RABBIT CHAMPION!';
+                document.getElementById('result-title').className = 'text-base sm:text-lg text-yellow-400 mb-2';
+                document.getElementById('result-message').innerHTML = 'AMAZING! You finished with <strong>FULL ENERGY</strong>!<br><br>🌟 You unlocked the <strong>EXTRA LARGE SURPRISE CARROT</strong> for Bun-Bun! 🎉';
+            } else {
+                // FINISHED BUT NOT FULL ENERGY
+                document.getElementById('result-icon').innerText = '🐰👍';
+                document.getElementById('result-title').innerText = 'GREAT JOB!';
+                document.getElementById('result-title').className = 'text-base sm:text-lg text-green-400 mb-2';
+                document.getElementById('result-message').innerText = 'You helped Bun-Bun finish the run! You can get the surprise gift next time! Try again for 100% full energy!';
+            }
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('result-modal').classList.add('hidden');
+            resetGameState();
+            isRunning = true;
+            showNextQuestion();
+        }
+
+        // Initialize canvas render on load
+        window.onload = function() {
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
